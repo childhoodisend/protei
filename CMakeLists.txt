@@ -5,3 +5,6 @@ project(protei)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 add_executable(protei-main main.cpp)
+
+add_subdirectory(server)
+add_subdirectory(client)
