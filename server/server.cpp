@@ -11,7 +11,7 @@
 
 #include <iostream>
 #include <thread>
-#include "algorithm/algo.h"
+#include "../algo.h"
 
 const int MAX_PACKET = 2048;
 
