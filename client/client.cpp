@@ -15,6 +15,11 @@ const int MAX_PACKET = 2048;
 
 void Client::run_tcp(const std::string& msg)
 {
+    if (msg.empty()) {
+        std::cout << "Client::run_tcp() : msg is empty " << std::endl;
+        return;
+    }
+
     struct sockaddr_in sa;
     int SocketFD;
 
@@ -40,7 +45,7 @@ void Client::run_tcp(const std::string& msg)
         const char* msg_send = msg.data();
         try {
             auto res = write(SocketFD, msg_send, strlen(msg_send));
-            std::cout << "Client write " << res << " " << msg << std::endl;;
+            std::cout << "Client write tcp: " << res << " bytes, msg : " << msg << std::endl;;
         }
         catch (...) {
             std::cerr << 1 << std::endl;
@@ -50,7 +55,7 @@ void Client::run_tcp(const std::string& msg)
         try {
             auto res = read(SocketFD, buff, MAX_PACKET);
 
-            std::cout << "Client read " << res << " \"" << buff << "\""<< std::endl;
+            std::cout << "Client read tcp: " << res << " bytes, msg: \"" << buff << "\""<< std::endl;
 
             delete[] buff;
         }
@@ -64,6 +69,12 @@ void Client::run_tcp(const std::string& msg)
 }
 
 void Client::run_udp(const std::string& msg) {
+
+    if (msg.empty()) {
+        std::cout << "Client::run_udp() : msg is empty " << std::endl;
+        return;
+    }
+
     sockaddr_in sa{};
     const char* buffer = msg.data();
 
@@ -83,6 +94,7 @@ void Client::run_udp(const std::string& msg) {
     socklen_t fromlen = sizeof sa;
 
     auto res  = sendto(sock, buffer, strlen(buffer), 0,(sockaddr*)&sa, fromlen);
+    std::cout << "Client write udp: " << res << " bytes, msg: " << buffer << std::endl;
     if (res < 0) {
         printf("Error sending packet: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
@@ -90,8 +102,7 @@ void Client::run_udp(const std::string& msg) {
 
     char* rec_msg = new char[MAX_PACKET];
     res = recvfrom(sock, rec_msg, MAX_PACKET, 0, (sockaddr*)&sa, &fromlen);
-
-    std::cout << rec_msg << std::endl;
+    std::cout << "Client recvfrom udp: " << res << " bytes, msg: \"" << rec_msg << "\""<< std::endl;
 
     if (res < 0) {
         printf("Error recv packet: %s\n", strerror(errno));
@@ -103,8 +114,19 @@ void Client::run_udp(const std::string& msg) {
 
 int main() {
     try {
-//        client_ptr client_tcp = std::make_shared<Client>("tcp", "Apple 1, Orange 2, Nuts 30 and Water 1 bottle");
-        client_ptr client_udp = std::make_shared<Client>("udp", "Apple 1, Orange 2, Nuts 30 and Water 1 bottle");
+//        client_ptr client_tcp1 = std::make_shared<Client>("tcp", "Apple 1 kg");
+//        client_ptr client_udp1 = std::make_shared<Client>("udp", "Apple 1 kg");
+//        client_ptr client_tcp2 = std::make_shared<Client>("tcp", "Orange 2 kg");
+//        client_ptr client_udp2 = std::make_shared<Client>("udp", "Orange 2 kg");
+//        client_ptr client_tcp3 = std::make_shared<Client>("tcp", "Nuts 13 kg and Water 13 bottle");
+//        client_ptr client_udp3 = std::make_shared<Client>("udp", "Nuts 13 kg and Water 13 bottle");
+//
+//        client_ptr client_tcp_null1 = std::make_shared<Client>("tcp", "Apple 0");
+//        client_ptr client_udp_null1 = std::make_shared<Client>("udp", "Orange 0");
+//        client_ptr client_tcp_null2 = std::make_shared<Client>("tcp", "NULLMSG");
+//        client_ptr client_udp_null2 = std::make_shared<Client>("udp", "NULLMSG");
+        client_ptr client_tcp_null3 = std::make_shared<Client>("tcp", "");
+//        client_ptr client_udp_null3 = std::make_shared<Client>("udp", "");
     }
     catch (std::runtime_error &rt) {
         std::cerr << rt.what() << std::endl;
