@@ -1,22 +1,11 @@
 #include "server.h"
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
 #include <iostream>
-#include <thread>
 #include "../algo.h"
 
 const int MAX_PACKET = 2048;
 
 void Server::run_udp() {
-    int sock;
     sockaddr_in sa{};
 
 
@@ -26,10 +15,10 @@ void Server::run_udp() {
     sa.sin_port = htons(7654);
     socklen_t fromlen = sizeof sa;
 
-    sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (bind(sock, (struct sockaddr *)&sa, sizeof sa) == -1) {
+    sock_udp = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (bind(sock_udp, (struct sockaddr *)&sa, sizeof sa) == -1) {
         perror("error bind failed");
-        close(sock);
+        close(sock_udp);
         exit(EXIT_FAILURE);
     }
 
@@ -38,7 +27,7 @@ void Server::run_udp() {
         char* buffer = new char[MAX_PACKET];
 
         try {
-            auto res = recvfrom(sock, buffer, MAX_PACKET, 0, (sockaddr *) &sa, &fromlen);
+            auto res = recvfrom(sock_udp, buffer, MAX_PACKET, 0, (sockaddr *) &sa, &fromlen);
             std::cout << "Server rerecvfrom udp: " << res << " bytes, msg: \"" << buffer <<"\"" << std::endl;
             if (res < 0) {
                 fprintf(stderr, "%s\n", strerror(errno));
@@ -56,7 +45,7 @@ void Server::run_udp() {
 
         try {
             std::string msg = sum > 0 ? std::to_string(sum) : str_buff;
-            auto res = sendto(sock, msg.data(), msg.length(), 0, (sockaddr *) &sa, fromlen);
+            auto res = sendto(sock_udp, msg.data(), msg.length(), 0, (sockaddr *) &sa, fromlen);
             std::cout << "Server sendto udp: " << res << " bytes, msg: " << msg << std::endl;
             if (res < 0) {
                 fprintf(stderr, "%s\n", strerror(errno));
@@ -69,14 +58,12 @@ void Server::run_udp() {
 
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-
-    close(sock);
 }
 
 void Server::run_tcp() {
     sockaddr_in sa{};
-    int SocketFD = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (SocketFD == -1) {
+    sock_tcp = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (sock_tcp == -1) {
         perror("cannot create socket");
         exit(EXIT_FAILURE);
     }
@@ -87,24 +74,24 @@ void Server::run_tcp() {
     sa.sin_port = htons(1100);
     sa.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    if (bind(SocketFD,(struct sockaddr *)&sa, sizeof sa) == -1) {
+    if (bind(sock_tcp,(struct sockaddr *)&sa, sizeof sa) == -1) {
         perror("bind failed");
-        close(SocketFD);
+        close(sock_tcp);
         exit(EXIT_FAILURE);
     }
 
-    if (listen(SocketFD, 10) == -1) {
+    if (listen(sock_tcp, 10) == -1) {
         perror("listen failed");
-        close(SocketFD);
+        close(sock_tcp);
         exit(EXIT_FAILURE);
     }
 
     for (;;) {
-        int ConnectFD = accept(SocketFD, nullptr, nullptr);
+        int ConnectFD = accept(sock_tcp, nullptr, nullptr);
 
         if (ConnectFD == -1) {
             perror("accept failed");
-            close(SocketFD);
+            close(sock_tcp);
             exit(EXIT_FAILURE);
         }
 
@@ -135,15 +122,14 @@ void Server::run_tcp() {
         if (shutdown(ConnectFD, SHUT_RDWR) == -1) {
             perror("shutdown failed");
             close(ConnectFD);
-            close(SocketFD);
+            close(sock_tcp);
             exit(EXIT_FAILURE);
         }
+
         close(ConnectFD);
 
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-
-    close(SocketFD);
 }
 
 Server::Server() {
@@ -159,6 +145,15 @@ Server::Server() {
 }
 
 Server::~Server() {
+    try {
+        close(sock_tcp);
+        close(sock_udp);
+    }
+    catch (...) {
+        std::cerr << "Server::~Server() ... " << std::endl;
+    }
+
+
     if (tcp_th.joinable()) {
         tcp_th.join();
     }
@@ -169,7 +164,13 @@ Server::~Server() {
 
 int main()
 {
-    server_ptr ptr = std::make_shared<Server>();
+    try {
+        server_ptr ptr = std::make_shared<Server>();
+    }
+    catch(...) {
+        std::cerr << "main ... " << std::endl;
+    }
+
 
     return EXIT_SUCCESS;
 }
