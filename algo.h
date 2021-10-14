@@ -10,7 +10,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
-
+#include <iostream>
 /**
  *
  * @param num_vec
@@ -21,12 +21,8 @@ int vector_sum(const std::vector<int>& num_vec) noexcept {
     int sum = 0;
 
     for(auto &num : num_vec) {
-
-        std::cout << "num " << num << std::endl;
-
         sum += num;
     }
-
 
     return sum;
 }
