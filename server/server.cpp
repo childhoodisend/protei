@@ -17,8 +17,7 @@ const int MAX_PACKET = 2048;
 
 void Server::run_udp() {
     int sock;
-    struct sockaddr_in sa;
-    char* buffer = new char[MAX_PACKET];
+    sockaddr_in sa{};
 
 
     memset(&sa, 0, sizeof sa);
@@ -35,24 +34,43 @@ void Server::run_udp() {
     }
 
     for (;;) {
-        auto res = recvfrom(sock, buffer, MAX_PACKET, 0, (sockaddr*)&sa, &fromlen);
-        if (res < 0) {
-            fprintf(stderr, "%s\n", strerror(errno));
-            exit(EXIT_FAILURE);
+
+        char* buffer = new char[MAX_PACKET];
+
+        try {
+            auto res = recvfrom(sock, buffer, MAX_PACKET, 0, (sockaddr *) &sa, &fromlen);
+            std::cout << "Server rerecvfrom udp: " << res << " bytes, msg: \"" << buffer <<"\"" << std::endl;
+            if (res < 0) {
+                fprintf(stderr, "%s\n", strerror(errno));
+                exit(EXIT_FAILURE);
+            }
         }
-        printf("recsize: %d\n ", (int)res);
-        sleep(1);
-        printf("datagram: %.*s\n", (int)res, buffer);
+        catch (...) {
+            std::cerr << "Server::run_udp() err recvfrom ... " << std::endl;
+        }
 
-        res = sendto(sock, buffer, strlen(buffer), 0,(sockaddr*)&sa, fromlen);
 
-        if (res < 0) {
-            fprintf(stderr, "%s\n", strerror(errno));
-            exit(EXIT_FAILURE);
+        std::string str_buff(buffer);
+        delete[] buffer;
+        int sum = vector_sum(get_nums_from_str(str_buff));
+
+        try {
+            std::string msg = sum > 0 ? std::to_string(sum) : str_buff;
+            auto res = sendto(sock, msg.data(), msg.length(), 0, (sockaddr *) &sa, fromlen);
+            std::cout << "Server sendto udp: " << res << " bytes, msg: " << msg << std::endl;
+            if (res < 0) {
+                fprintf(stderr, "%s\n", strerror(errno));
+                exit(EXIT_FAILURE);
+            }
+        }
+        catch(...) {
+            std::cerr << "Server::run_udp() err sendto ... " << std::endl;
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
+
+    close(sock);
 }
 
 void Server::run_tcp() {
@@ -83,7 +101,6 @@ void Server::run_tcp() {
 
     for (;;) {
         int ConnectFD = accept(SocketFD, nullptr, nullptr);
-        std::cout << "ConnectFD" << ConnectFD << std::endl;
 
         if (ConnectFD == -1) {
             perror("accept failed");
@@ -96,23 +113,23 @@ void Server::run_tcp() {
         int sum = 0;
         try {
             auto res = read(ConnectFD, buff, MAX_PACKET);
-            std::cout << "Server read " << res << "  \"" << buff <<"\"" << std::endl;
+            std::cout << "Server read tcp: " << res << " bytes, msg: \"" << buff <<"\"" << std::endl;
             str_buff = std::string(buff, buff + res);
             delete[] buff;
             sum = vector_sum(get_nums_from_str(str_buff));
         }
         catch (...) {
-            std::cerr << 1 << std::endl;
+            std::cerr << "Server::run_tcp() err ... " << std::endl;
         }
 
         try {
             std::string msg = sum > 0 ? std::to_string(sum) : str_buff;
 
             auto res = write(ConnectFD, msg.data(), msg.length());
-            std::cout << "Server write " << res << " " << msg << std::endl;
+            std::cout << "Server write tcp: " << res << " bytes, msg: " << msg << std::endl;
         }
         catch(...) {
-            std::cerr << 2 << std::endl;
+            std::cerr << "Server::run_tcp() err write ... " << std::endl;
         }
 
         if (shutdown(ConnectFD, SHUT_RDWR) == -1) {
