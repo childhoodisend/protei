@@ -13,13 +13,13 @@
 class Client {
 public:
     Client() = delete;
-    explicit Client(const std::string& mode, const std::string& msg) {
+    explicit Client(const std::string& mode, const std::vector<std::string>& msgs) {
         if (std::find(possible_modes.begin(), possible_modes.end(), mode) != possible_modes.end()) {
             if (mode == "tcp") {
-                run_tcp(msg);
+                run_tcp(msgs);
             }
             if (mode == "udp") {
-                run_udp(msg);
+                run_udp(msgs);
             }
         }
         else {
@@ -30,8 +30,8 @@ public:
 
 private:
 
-    void run_tcp(const std::string& msg);
-    void run_udp(const std::string& msg);
+    void run_tcp(const std::vector<std::string>& msgs);
+    void run_udp(const std::vector<std::string>& msgs);
 
     std::vector<std::string> possible_modes = {"tcp", "udp"};
 };
