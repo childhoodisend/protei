@@ -1,5 +1,6 @@
 #include "server.h"
-
+#include <stdio.h>
+#include <string.h>
 #include <iostream>
 #include "../algo.h"
 
@@ -56,7 +57,7 @@ void Server::run_udp() {
             std::cerr << "Server::run_udp() err sendto ... " << std::endl;
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }
 
@@ -88,47 +89,10 @@ void Server::run_tcp() {
 
     for (;;) {
         int ConnectFD = accept(sock_tcp, nullptr, nullptr);
+        std::cout << "Connect new client  " << std::endl;
 
-        if (ConnectFD == -1) {
-            perror("accept failed");
-            close(sock_tcp);
-            exit(EXIT_FAILURE);
-        }
-
-        char* buff = new char[MAX_PACKET];
-        std::string str_buff;
-        int sum = 0;
-        try {
-            auto res = read(ConnectFD, buff, MAX_PACKET);
-            std::cout << "Server read tcp: " << res << " bytes, msg: \"" << buff <<"\"" << std::endl;
-            str_buff = std::string(buff, buff + res);
-            delete[] buff;
-            sum = vector_sum(get_nums_from_str(str_buff));
-        }
-        catch (...) {
-            std::cerr << "Server::run_tcp() err ... " << std::endl;
-        }
-
-        try {
-            std::string msg = sum > 0 ? std::to_string(sum) : str_buff;
-
-            auto res = write(ConnectFD, msg.data(), msg.length());
-            std::cout << "Server write tcp: " << res << " bytes, msg: " << msg << std::endl;
-        }
-        catch(...) {
-            std::cerr << "Server::run_tcp() err write ... " << std::endl;
-        }
-
-        if (shutdown(ConnectFD, SHUT_RDWR) == -1) {
-            perror("shutdown failed");
-            close(ConnectFD);
-            close(sock_tcp);
-            exit(EXIT_FAILURE);
-        }
-
-        close(ConnectFD);
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        auto accept_thr = std::thread(&Server::on_connect_tcp, this, ConnectFD);
+        accept_thr.detach();
     }
 }
 
@@ -160,6 +124,61 @@ Server::~Server() {
     if (udp_th.joinable()) {
         udp_th.join();
     }
+}
+
+void Server::on_connect_tcp(int Connect) {
+
+    if (Connect == -1) {
+        perror("accept failed");
+        close(sock_tcp);
+        exit(EXIT_FAILURE);
+    }
+
+    for(int tries = 0; tries < 10;) {
+
+        char *buff = new char[MAX_PACKET];
+        std::string str_buff;
+        int sum = 0;
+
+        try {
+            auto res = read(Connect, buff, MAX_PACKET);
+
+            if (res == 0) {
+                ++tries;
+                continue;
+            }
+
+            std::cout << "Server read tcp: " << res << " bytes, msg: \"" << buff << "\"" << std::endl;
+            str_buff = std::string(buff, buff + res);
+            delete[] buff;
+            sum = vector_sum(get_nums_from_str(str_buff));
+        }
+        catch (...) {
+            std::cerr << "Server::run_tcp() err ... " << std::endl;
+        }
+
+        try {
+            std::string msg = sum > 0 ? std::to_string(sum) : str_buff;
+
+            auto res = write(Connect, msg.data(), msg.length());
+            std::cout << "Server write tcp: " << res << " bytes, msg: " << msg << std::endl;
+        }
+        catch (...) {
+            std::cerr << "Server::run_tcp() err write ... " << std::endl;
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    if (shutdown(Connect, SHUT_RDWR) == -1) {
+        perror("shutdown failed");
+        close(Connect);
+        close(sock_tcp);
+        exit(EXIT_FAILURE);
+    }
+    close(Connect);
+
+    std::cout << "thread "<< std::this_thread::get_id() << " endpoint "<< std::endl;
 }
 
 int main()
