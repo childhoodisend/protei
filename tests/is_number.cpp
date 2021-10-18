@@ -5,7 +5,7 @@
 int test() {
     int err = 0;
 
-    std::vector<const std::string> str = {"1", "orange", " ", "$300$"};
+    std::vector<std::string> str = {"1", "orange", " ", "$300$"};
     std::vector<bool> etalon = {true, false, false, false};
     std::vector<bool> ans{};
 
