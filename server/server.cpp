@@ -26,23 +26,24 @@ void Server::run_udp() {
     for (;;) {
 
         char* buffer = new char[MAX_PACKET];
-
+        std::string str_buff;
+        int sum = 0;
         try {
             auto res = recvfrom(sock_udp, buffer, MAX_PACKET, 0, (sockaddr *) &sa, &fromlen);
-            std::cout << "Server rerecvfrom udp: " << res << " bytes, msg: \"" << buffer <<"\"" << std::endl;
             if (res < 0) {
                 fprintf(stderr, "%s\n", strerror(errno));
                 exit(EXIT_FAILURE);
             }
+
+            str_buff = std::string(buffer, res); //TODO bug with res != strlen(buffer), hot fix
+            delete[] buffer;
+
+            std::cout << "Server rerecvfrom udp: " << res << " bytes, msg: \"" << str_buff <<"\"" << std::endl;
+            sum = vector_sum(get_nums_from_str(str_buff));
         }
         catch (...) {
             std::cerr << "Server::run_udp() err recvfrom ... " << std::endl;
         }
-
-
-        std::string str_buff(buffer);
-        delete[] buffer;
-        int sum = vector_sum(get_nums_from_str(str_buff));
 
         try {
             std::string msg = sum > 0 ? std::to_string(sum) : str_buff;
@@ -149,7 +150,7 @@ void Server::on_connect_tcp(int Connect) {
             }
 
             std::cout << "Server read tcp: " << res << " bytes, msg: \"" << buff << "\"" << std::endl;
-            str_buff = std::string(buff, buff + res);
+            str_buff = std::string(buff, res);
             delete[] buff;
             sum = vector_sum(get_nums_from_str(str_buff));
         }
