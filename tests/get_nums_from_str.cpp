@@ -6,8 +6,8 @@
 int test() {
     int err = 0;
 
-    std::vector<const std::string> str = {"1 apple, 2 oranges", "1 2 3 4 5", " ", "300 $"};
-    std::vector<std::vector<const int>> etalon = {{1, 2}, {1, 2, 3, 4, 5}, {}, {300}};
+    std::vector<std::string> str = {"1 apple, 2 oranges", "1 2 3 4 5", " ", "300 $"};
+    std::vector<std::vector<int>> etalon = {{1, 2}, {1, 2, 3, 4, 5}, {}, {300}};
     std::vector<std::vector<int>> nums{{}, {}, {}, {}};
 
     for (size_t i = 0; i < str.size(); ++i) {
