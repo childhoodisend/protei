@@ -19,9 +19,21 @@ class Server {
 public:
     Server();
     ~Server();
-
+    /**
+     * Run tcp thread, accept clients
+     */
     void run_tcp();
+
+    /**
+     * Run udp thread, recvfrom and sendto client
+     */
     void run_udp();
+
+    /**
+     *
+     * @param Connect
+     */
+    void on_connect_tcp(int Connect);
 
 private:
     std::thread tcp_th;
